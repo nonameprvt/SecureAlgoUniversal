@@ -1,0 +1,209 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "execution_count": 1,
+      "metadata": {
+        "id": "ufJXQ6A9DeHm"
+      },
+      "outputs": [],
+      "source": [
+        "from itertools import combinations\n",
+        "import random"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def preparation(friends, rivals):\n",
+        "    friends_worlds = defaultdict(list)\n",
+        "    rivals_worlds = defaultdict(list)\n",
+        "    for i in range (friends):\n",
+        "        print(\"Input worlds, which are indistinguishable for the\", i, \"player, divided by space. If you want to stop, input -1\")\n",
+        "        worlds = list(map(int, input().split()))\n",
+        "        while worlds[0] != -1:\n",
+        "            friends_worlds[i].append(worlds)\n",
+        "            print(\"Input worlds, which are indistinguishable for the\", i, \"player, divided by space. If you want to stop, input -1\")\n",
+        "            worlds = list(map(int, input().split()))\n",
+        "    for i in range (rivals):\n",
+        "        print(\"Input worlds, which are indistinguishable for the\", i, \"rival, divided by space. If you want to stop, input -1\")\n",
+        "        worlds = list(map(int, input().split()))\n",
+        "        while worlds[0] != -1:\n",
+        "            rivals_worlds[i].append(worlds)\n",
+        "            print(\"Input worlds, which are indistinguishable for the\", i, \"rival, divided by space. If you want to stop, input -1\")\n",
+        "            worlds = list(map(int, input().split()))\n",
+        "\n",
+        "    return friends_worlds, rivals_worlds"
+      ],
+      "metadata": {
+        "id": "GEux05sKDkjt"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def worlds_to_edges(friends, rivals, friends_worlds, rivals_worlds):\n",
+        "    friends_edges = {i: defaultdict(list) for i in range(friends)}\n",
+        "    rivals_edges = {i: defaultdict(list) for i in range(rivals)}\n",
+        "\n",
+        "    def fill_edges(graphs, worlds_dict):\n",
+        "        for player, groups in worlds_dict.items():\n",
+        "            for group in groups:\n",
+        "                for world in group:\n",
+        "                    graphs[player][world].extend([x for x in group if x != world])\n",
+        "\n",
+        "    fill_edges(friends_edges, friends_worlds)\n",
+        "    fill_edges(rivals_edges, rivals_worlds)\n",
+        "\n",
+        "    return friends_edges, rivals_edges"
+      ],
+      "metadata": {
+        "id": "YP-KaWL2Dm3X"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def get_suggested(friends, rivals, friends_edges, rivals_edges, real):\n",
+        "    suggested_friends_worlds = defaultdict(list)\n",
+        "    suggested_rivals_worlds = defaultdict(list)\n",
+        "    for friend in range (friends):\n",
+        "        suggested_friends_worlds[friend] = friends_edges[friend][real]\n",
+        "        suggested_friends_worlds[friend].append(real)\n",
+        "    for rival in range (rivals):\n",
+        "        suggested_rivals_worlds[rival] = rivals_edges[rival][real]\n",
+        "        suggested_rivals_worlds[rival].append(real)\n",
+        "    return suggested_friends_worlds, suggested_rivals_worlds"
+      ],
+      "metadata": {
+        "id": "42uyN00oDqv_"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def get_turns(friends, suggested_worlds, friends_worlds):\n",
+        "    all_turns = defaultdict(list)\n",
+        "    for i in range (friends):\n",
+        "        for k in range (friends):\n",
+        "            check_what_to_delete(suggested_worlds[i], friends_worlds[k], all_turns[i])\n",
+        "    return all_turns"
+      ],
+      "metadata": {
+        "id": "r_a-_hfCDraP"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def check_what_to_delete(suggested, friends_worlds, to_delete):\n",
+        "  for group in friends_worlds:\n",
+        "    for suggested_world in suggested:\n",
+        "      if suggested_world in group:\n",
+        "        for world in group:\n",
+        "          if world not in suggested and world not in to_delete:\n",
+        "            to_delete.append(world)"
+      ],
+      "metadata": {
+        "id": "64RwdxoDDtXb"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def win(edges, real):\n",
+        "    if real in edges:\n",
+        "        return edges[real] == [real]"
+      ],
+      "metadata": {
+        "id": "M-vi1FE9DvnB"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def delete_world(current, edges):\n",
+        "    for v in edges.keys():\n",
+        "        if current in edges[v]:\n",
+        "            edges[v].remove(current)\n",
+        "    if current in edges.keys():\n",
+        "        del edges[current]\n",
+        "\n",
+        "def turn(current, friends_edges, rivals_edges):\n",
+        "    for i in range(len(friends_edges)):\n",
+        "        delete_world(current, friends_edges[i])\n",
+        "    for i in range(len(rivals_edges)):\n",
+        "        delete_world(current, rivals_edges[i])"
+      ],
+      "metadata": {
+        "id": "t-nrqnFMDx2K"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from collections import defaultdict\n",
+        "\n",
+        "friends, rivals = map(int, input().split())\n",
+        "\n",
+        "real = 1\n",
+        "friends_worlds, rivals_worlds = preparation(friends, rivals)\n",
+        "friends_edges, rivals_edges = worlds_to_edges(friends, rivals, friends_worlds, rivals_worlds)\n",
+        "\n",
+        "suggested_friends_worlds, suggested_rivals_worlds = get_suggested(friends, rivals, friends_edges, rivals_edges, real)\n",
+        "\n",
+        "all_turns = get_turns(friends, suggested_friends_worlds, friends_worlds)\n",
+        "\n",
+        "current = 0\n",
+        "\n",
+        "stop_flag = [True] * friends\n",
+        "\n",
+        "while all(not win(friends_edges[i], real) for i in range(friends)) and all(not win(rivals_edges[i], real) for i in range(rivals)) and any(stop_flag):\n",
+        "    for num in range(friends):\n",
+        "        if current < len(all_turns[i]):\n",
+        "            turn(all_turns[num][current], friends_edges, rivals_edges)\n",
+        "        else:\n",
+        "          stop_flag[num] = False\n",
+        "    current += 1\n",
+        "\n",
+        "if any([win(rivals_edges[i], real) for i in range(rivals)]):\n",
+        "    print(\"Agents win\")\n",
+        "else:\n",
+        "    print(\"Eavesdroppers win\")"
+      ],
+      "metadata": {
+        "id": "omBLVUXAD0OX"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
